@@ -7,11 +7,7 @@ namespace OdysseyWebAPI.Controllers
     [ApiController]
     public class DecimalToStringController : ControllerBase
     {
-        private string[] StringifiedOnes = { "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine" };
-
-        private string[] StringifiedTens = { "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen""Twenty", "Thirty", "Fourty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety" };
-
-        private string[] StringifiedHundreds = { "Thousand", "Million", "Billion", "Trillion", "Quadrillion", "Quintillion", "Sextillion", "Septillion", "Octillion" };
+        private string[] StringifiedOnes = { "ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE" };
 
         private readonly ILogger<DecimalToStringController> _logger;
 
@@ -23,34 +19,22 @@ namespace OdysseyWebAPI.Controllers
         [HttpGet("{input}", Name = "ConvertDecimalToString")]
         public String Get(decimal input)
         {
-            return NumberToWords(input);
-        }
-
-        private string NumberToWords(decimal input)
-        {
-            string stringified = String.Empty;
-
-            // Stringify the int side of our input so we can do index lookup etc.
-            string stringifiedInput = ((int)Math.Abs(input)).ToString();
-
-            // First let's round to 2 decimal places
+            // First of all, round down to 2 decimal places
             input = Math.Round(input, 2);
 
-            // Then let's grab our number of digits
-            int numDigits = stringifiedInput.Length;
+            // Do our absolute, then append decimals
+            decimal absolute = Math.Truncate(input);
+            decimal trailingDigits = Convert.ToDecimal(input.ToString().Split('.').Last());
 
-            // Iterate through groups of 3 digits until we run out - count our iterations so we can append illions etc.
-            for (int i = 3, c = 1; i < numDigits; i += 3, c++)
+            string absoluteStringified = absolute > 0 ? $"{NumberToWords(absolute)} DOLLAR{(absolute > 1 ? "S" : "")}" : "";
+
+            // Now do our decimals if they exist
+            if (input.ToString().Contains(".") && trailingDigits != 0)
             {
-
+                absoluteStringified += $"{(absoluteStringified != "" ? " AND " : "")}{NumberToWords(trailingDigits)} CENT{(trailingDigits > 1 ? "S" : "")}";
             }
 
-            // If our string isn't empty, append AND + ones, else just spit out ones
-            stringified += stringified.Length == 0 ? TensOnesStringified(Convert.ToInt32(input)) : $"AND {TensOnesStringified(Convert.ToInt32(input))}";
-
-            // If our cents isn't zero - append
-
-            return stringified;
+            return absoluteStringified;
         }
 
         // Our function to convert ones to a string - using the private array in this class
@@ -62,62 +46,182 @@ namespace OdysseyWebAPI.Controllers
         // Our function to convert tens to a string - using our private array
         private string TensToText(int input)
         {
-            // Throw an error if our string isn't 2 digits
-            if (input.ToString().Length != 2)
+            String output = null;
+            switch (input)
             {
-                throw new Exception("Length must be 2");
+                case 10:
+                    output = "TEN";
+                    break;
+                case 11:
+                    output = "ELEVEN";
+                    break;
+                case 12:
+                    output = "TWELVE";
+                    break;
+                case 13:
+                    output = "THIRTEEN";
+                    break;
+                case 14:
+                    output = "FOURTEEN";
+                    break;
+                case 15:
+                    output = "FIFTEEN";
+                    break;
+                case 16:
+                    output = "SIXTEEN";
+                    break;
+                case 17:
+                    output = "SEVENTEEN";
+                    break;
+                case 18:
+                    output = "EIGHTEEN";
+                    break;
+                case 19:
+                    output = "NINETEEN";
+                    break;
+                case 20:
+                    output = "TWENTY";
+                    break;
+                case 30:
+                    output = "THIRTY";
+                    break;
+                case 40:
+                    output = "FOURTY";
+                    break;
+                case 50:
+                    output = "FIFTY";
+                    break;
+                case 60:
+                    output = "SIXTY";
+                    break;
+                case 70:
+                    output = "SEVENTY";
+                    break;
+                case 80:
+                    output = "EIGHTY";
+                    break;
+                case 90:
+                    output = "NINETY";
+                    break;
+                default:
+                    if (input > 0)
+                    {
+                        output = TensToText(Convert.ToInt32(input.ToString().Substring(0, 1) + "0")) + "-" + OnesToText(Convert.ToInt32(input.ToString()[1..]));
+                    }
+                    break;
             }
-
-            // Just need to return the index of the array minus the 9 ones digits if the
-            // number is less than 20 or contains a 0 in the second position
-            // Otherwise we can return in the format $"{digitOneTens}-{digitTwoOnes}"
-            if (input < 20 || input.ToString()[1] == '0')
-            {
-                return StringifiedTens[input - 10];
-            }
-            else
-            {
-                // Grab ones by grabbing remainder modulo 10
-                int ones = input % 10;
-                // Grab tens by removing ones from input
-                int tens = input - ones;
-
-                // Return our stringified tens - stringified ones
-                return $"{StringifiedTens[tens - 10]}-{OnesToText(ones)}";
-            }
+            return output;
         }
 
-        private string TensOnesStringified(int input)
+        private String HundredsToWords(int input)
         {
-            // If we pass more than 3 digits throw an error
-            if (input.ToString().Length > 2)
-            {
-                throw new Exception("Input length cannot be greater than 2");
-            }
+            string output = String.Empty;
 
+            // Store our number of digits
             int numDigits = input.ToString().Length;
 
-            // Then we need to grab our number in the ones position
-            int ones = input.ToString().Length >= 1 ? Convert.ToInt32(input.ToString()[numDigits - 1].ToString()) : 0;
-            int tens = input.ToString().Length >= 2 ? Convert.ToInt32(input.ToString()[numDigits - 2].ToString()) : 0;
+            // If we have a digit in the hundreds column, add that to our output
+            if (numDigits == 3)
+            {
+                output += $"{OnesToText(Convert.ToInt32(input.ToString()[0].ToString()))} HUNDRED";
 
-            // If tens and ones aren't zero - append together
-            if (tens > 1 && ones > 0)
-            {
-                return $"{StringifiedTens[(tens) - 2]}-{StringifiedOnes[ones - 1]}";
+                // If there is a non-zero number in the tens or ones columns - add the word AND
+                if (input.ToString()[1] != '0' || input.ToString()[numDigits - 1] != '0')
+                {
+                    output += " AND ";
+                }
             }
-            else if (tens > 1 && ones == 0)
+
+            // If we have a digit in the second position that is not zero - add to output
+            if (numDigits >= 2 && input.ToString()[numDigits - 2] != '0')
             {
-                return StringifiedTens[tens - 2];
+                output += $"{TensToText(Convert.ToInt32(input.ToString().Substring(numDigits - 2, 2)))}";
             }
-            else if (tens == 1 && ones > 0)
+
+            // Finally, add our ones if our tens didnt exist or was a zero, and our one isnt a zero
+            if (numDigits == 1 || input.ToString()[numDigits - 2] == '0' && input.ToString()[numDigits - 1] != '0')
             {
-                return StringifiedOnes[(input % 100) - 1];
+                output += $"{OnesToText(Convert.ToInt32(input.ToString()[numDigits - 1].ToString()))}";
             }
-            else
+
+            return output;
+        }
+
+        private string NumberToWords(decimal input)
+        {
+            #region Absolute
+            
+            // If our number is greater than 0, start making words from it
+            if (input > 0)
             {
-                return StringifiedOnes[ones - 1];
+                int numDigits = input.ToString().Length;
+
+                int index = 0;
+
+                switch (numDigits)
+                {
+                    case 1:
+                    case 2:
+                    case 3:
+                        return HundredsToWords(Convert.ToInt32(input));
+                    // Thousands - grab substring from 0 to the remainder of num digits modulo 4 (the minimum number of digits for this case)
+                    // plus one. We then recurse with the given index
+                    // We need to do this for every case up to the max number decimal can store
+                    case 4:
+                    case 5:
+                    case 6:
+                        index = (numDigits % 4) + 1;
+                        return HundredsToWords(Convert.ToInt32(input.ToString().Substring(0, index))) + " THOUSAND " + NumberToWords(Convert.ToDecimal(input.ToString().Substring(index)));
+                    case 7:
+                    case 8:
+                    case 9:
+                        index = (numDigits % 7) + 1;
+                        return HundredsToWords(Convert.ToInt32(input.ToString().Substring(0, index))) + " MILLION " + NumberToWords(Convert.ToDecimal(input.ToString().Substring(index)));
+                    case 10:
+                    case 11:
+                    case 12:
+                        index = (numDigits % 10) + 1;
+                        return HundredsToWords(Convert.ToInt32(input.ToString().Substring(0, index))) + " BILLION " + NumberToWords(Convert.ToDecimal(input.ToString().Substring(index)));
+                    case 13:
+                    case 14:
+                    case 15:
+                        index = (numDigits % 13) + 1;
+                        return HundredsToWords(Convert.ToInt32(input.ToString().Substring(0, index))) + " TRILLION " + NumberToWords(Convert.ToDecimal(input.ToString().Substring(index)));
+                    case 16:
+                    case 17:
+                    case 18:
+                        index = (numDigits % 16) + 1;
+                        return HundredsToWords(Convert.ToInt32(input.ToString().Substring(0, index))) + " QUADRILLION " + NumberToWords(Convert.ToDecimal(input.ToString().Substring(index)));
+                    case 19:
+                    case 20:
+                    case 21:
+                        index = (numDigits % 19) + 1;
+                        return HundredsToWords(Convert.ToInt32(input.ToString().Substring(0, index))) + " QUNTILLION " + NumberToWords(Convert.ToDecimal(input.ToString().Substring(index)));
+                    case 22:
+                    case 23:
+                    case 24:
+                        index = (numDigits % 22) + 1;
+                        return HundredsToWords(Convert.ToInt32(input.ToString().Substring(0, index))) + " SEXTILLION " + NumberToWords(Convert.ToDecimal(input.ToString().Substring(index)));
+                    case 25:
+                    case 26:
+                    case 27:
+                        index = (numDigits % 25) + 1;
+                        return HundredsToWords(Convert.ToInt32(input.ToString().Substring(0, index))) + " SEPTILLION " + NumberToWords(Convert.ToDecimal(input.ToString().Substring(index)));
+
+                    case 28:
+                    case 29:
+                    case 30:
+                        index = (numDigits % 28) + 1;
+                        return HundredsToWords(Convert.ToInt32(input.ToString().Substring(0, index))) + " OCTILLION " + NumberToWords(Convert.ToDecimal(input.ToString().Substring(index)));
+
+                    default:
+                        break;
+                }
             }
+
+            return "";
+
+            #endregion
         }
     }
 }
