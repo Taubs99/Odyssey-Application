@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace OdysseyWebAPI.Controllers
 {
@@ -17,7 +18,7 @@ namespace OdysseyWebAPI.Controllers
         }
 
         [HttpGet("{input}", Name = "ConvertDecimalToString")]
-        public String Get(decimal input)
+        public String Get([Range((double)0.01, Double.MaxValue)] decimal input)
         {
             // First of all, round down to 2 decimal places
             input = Math.Round(input, 2);
