@@ -46,7 +46,7 @@ namespace OdysseyWebAPI.Controllers
         // Our function to convert tens to a string - using our private array
         private string TensToText(int input)
         {
-            String output = null;
+            String output = String.Empty;
             switch (input)
             {
                 case 10:
